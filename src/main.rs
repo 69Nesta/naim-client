@@ -1,4 +1,4 @@
-use naim_protocol::{connection_manager, heartbeat_loop, Config, SharedConn};
+use naim_client::{Config, SharedConn, connection_manager, heartbeat_loop};
 use std::io::{self, BufRead};
 use std::sync::Arc;
 use std::thread;
