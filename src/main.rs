@@ -1,9 +1,4 @@
-mod client;
-mod config;
-mod utils;
-
-use client::{SharedConn, connection_manager, heartbeat_loop};
-use config::Config;
+use naim_protocol::{connection_manager, heartbeat_loop, Config, SharedConn};
 use std::io::{self, BufRead};
 use std::sync::Arc;
 use std::thread;
