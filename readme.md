@@ -69,13 +69,13 @@ The crate exposes a reusable library. In another project, add the local dependen
 
 ```toml
 [dependencies]
-naim_protocol = { path = "../naim-client" }
+naim_client = { path = "../naim-client" }
 ```
 
 Minimal example:
 
 ```rust
-use naim_protocol::{connection_manager, heartbeat_loop, Config, SharedConn};
+use naim_client::{connection_manager, heartbeat_loop, Config, SharedConn};
 use std::sync::Arc;
 use std::thread;
 

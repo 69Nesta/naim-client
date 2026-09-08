@@ -1,5 +1,5 @@
 [package]
-name = "naim_protocol"
+name = "naim_client"
 version = "0.1.0"
 edition = "2024"
 
