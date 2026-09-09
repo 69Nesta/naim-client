@@ -33,6 +33,7 @@ fn main() -> anyhow::Result<()> {
                 }
                 IncomingMessage::Error { raw } => println!("[naim] error: {}", raw),
                 IncomingMessage::NvmLine(line) => println!("<< NVM: {}", line),
+                IncomingMessage::Status(status) => println!("[naim] status: {status:?}"),
             }
         }
     });

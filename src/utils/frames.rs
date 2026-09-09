@@ -28,6 +28,19 @@ fn attr<'a>(frame: &'a str, key: &str) -> Option<&'a str> {
     Some(&frame[start..end])
 }
 
+fn parse_preamp(line: &str) -> Option<(u8, String)> {
+    let mut fields = line.split_whitespace();
+    if fields.next()? != "#NVM" || fields.next()? != "PREAMP" {
+        return None;
+    }
+
+    let volume = fields.next()?.parse().ok()?;
+    fields.next()?;
+    fields.next()?;
+    let input = fields.next()?.to_string();
+    Some((volume, input))
+}
+
 pub fn handle_frame(shared: &SharedConn, raw: &[u8]) {
     let s = String::from_utf8_lossy(raw);
 
@@ -63,6 +76,9 @@ pub fn handle_frame(shared: &SharedConn, raw: &[u8]) {
                     let line: String = buf.drain(..pos + 2).collect();
                     let line = line.trim_end_matches("\r\n");
                     if !line.is_empty() {
+                        if let Some((volume, input)) = parse_preamp(line) {
+                            shared.update_preamp(volume, input);
+                        }
                         shared.publish(IncomingMessage::NvmLine(line.to_string()));
                     }
                 }
@@ -152,6 +168,14 @@ mod tests {
         assert_eq!(
             scan_frame(br#"noise<event name="X"></event>tail"#),
             Some((5, 29))
+        );
+    }
+
+    #[test]
+    fn parses_preamp_status() {
+        assert_eq!(
+            parse_preamp(r#"#NVM PREAMP 24 0 0 DIGITAL4 OFF OFF OFF ON "Numérique 4" OFF"#),
+            Some((24, "DIGITAL4".to_string()))
         );
     }
 }

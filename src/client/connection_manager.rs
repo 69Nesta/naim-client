@@ -65,6 +65,7 @@ pub fn connection_manager(shared: Arc<SharedConn>, reconnect_delay: u64, timeout
                 shared.nvm_buf.lock().unwrap().clear();
 
                 if let Err(e) = shared.handshake(timeout) {
+                    shared.set_connected(false);
                     println!(
                         "[naim] handshake failed: {} — reconnecting in {}s...",
                         e, reconnect_delay
@@ -78,17 +79,23 @@ pub fn connection_manager(shared: Arc<SharedConn>, reconnect_delay: u64, timeout
                     "[naim] connected and session initialized on {}",
                     shared.get_host()
                 );
+                shared.set_connected(true);
+                if let Err(e) = shared.send_nvm("NVM GETPREAMP") {
+                    println!("[naim] initial GETPREAMP failed: {}", e);
+                }
 
                 // This function blocks as long as the connection is alive.
                 read_loop(&shared, reader_stream);
 
                 *shared.stream.lock().unwrap() = None;
+                shared.set_connected(false);
                 println!(
                     "[naim] connection lost, reconnecting in {}s...",
                     reconnect_delay
                 );
             }
             Err(e) => {
+                shared.set_connected(false);
                 eprintln!(
                     "[naim] cannot connect to {}: {} — reconnecting in {}s",
                     shared.get_host(),

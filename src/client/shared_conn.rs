@@ -1,10 +1,18 @@
 use crate::utils::base64_encode;
 
+use serde::{Deserialize, Serialize};
 use std::io::{self, Write};
 use std::net::{Shutdown, TcpStream};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Mutex, RwLock};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClientStatus {
+    pub connected: bool,
+    pub volume: Option<u8>,
+    pub input: Option<String>,
+}
 
 #[derive(Debug, Clone)]
 pub enum IncomingMessage {
@@ -22,6 +30,7 @@ pub enum IncomingMessage {
         raw: String,
     },
     NvmLine(String),
+    Status(ClientStatus),
 }
 
 pub struct SharedConn {
@@ -29,6 +38,7 @@ pub struct SharedConn {
     pub stream: Mutex<Option<TcpStream>>,
     id_counter: AtomicU32,
     pub nvm_buf: Mutex<String>,
+    status: Mutex<ClientStatus>,
     subscribers: Mutex<Vec<Sender<IncomingMessage>>>,
 }
 
@@ -39,6 +49,11 @@ impl SharedConn {
             stream: Mutex::new(None),
             id_counter: AtomicU32::new(3),
             nvm_buf: Mutex::new(String::new()),
+            status: Mutex::new(ClientStatus {
+                connected: false,
+                volume: None,
+                input: None,
+            }),
             subscribers: Mutex::new(Vec::new()),
         }
     }
@@ -56,6 +71,30 @@ impl SharedConn {
 
     pub fn is_connected(&self) -> bool {
         self.stream.lock().unwrap().is_some()
+    }
+
+    pub fn status(&self) -> ClientStatus {
+        self.status.lock().unwrap().clone()
+    }
+
+    pub(crate) fn set_connected(&self, connected: bool) {
+        let mut status = self.status.lock().unwrap();
+        if status.connected == connected {
+            return;
+        }
+        status.connected = connected;
+        let snapshot = status.clone();
+        drop(status);
+        self.publish(IncomingMessage::Status(snapshot));
+    }
+
+    pub(crate) fn update_preamp(&self, volume: u8, input: String) {
+        let mut status = self.status.lock().unwrap();
+        status.volume = Some(volume);
+        status.input = Some(input);
+        let snapshot = status.clone();
+        drop(status);
+        self.publish(IncomingMessage::Status(snapshot));
     }
 
     pub fn send_raw(&self, xml: &str) -> io::Result<()> {
@@ -113,6 +152,7 @@ impl SharedConn {
 
     pub fn replace_host(&self, host: String) {
         *self.host.write().unwrap() = host;
+        self.set_connected(false);
         if let Some(stream) = self.stream.lock().unwrap().take() {
             let _ = stream.shutdown(Shutdown::Both);
         }

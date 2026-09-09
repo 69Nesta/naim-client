@@ -120,10 +120,11 @@ Main API:
 * `SharedConn::send_nvm(command)`: send an NVM command and return its command ID;
 * `SharedConn::send_raw(xml)`: send a raw XML command;
 * `SharedConn::send_ping()`: manually send a heartbeat and return its command ID;
+* `SharedConn::status()`: read the latest connection, volume, and input snapshot;
 * `connection_manager(...)`: connection, handshake, reading, and reconnection;
 * `heartbeat_loop(...)`: periodically send `Ping` commands.
 
-`IncomingMessage::Response` and `IncomingMessage::Event` include the protocol name, optional command ID, and raw XML. `IncomingMessage::NvmLine` contains one decoded NVM response line, while `IncomingMessage::Error` contains the raw error frame. Subscribers remain registered across reconnects and are removed when their receiver is dropped.
+`IncomingMessage::Response` and `IncomingMessage::Event` include the protocol name, optional command ID, and raw XML. `IncomingMessage::NvmLine` contains one decoded NVM response line, `IncomingMessage::Status` contains the latest connection, volume, and input snapshot, and `IncomingMessage::Error` contains the raw error frame. The connection manager sends `NVM GETPREAMP` after each successful handshake and updates the status when a `#NVM PREAMP ...` line is received. Subscribers remain registered across reconnects and are removed when their receiver is dropped.
 
 ## Verification
 
