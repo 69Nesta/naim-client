@@ -46,9 +46,10 @@ fn read_loop(shared: &Arc<SharedConn>, mut stream: TcpStream) {
 // Thread manager for (re)connecting indefinitely
 // ---------------------------------------------------------------------------
 
-pub fn connection_manager(shared: Arc<SharedConn>, reconnect_delay: u64) {
+pub fn connection_manager(shared: Arc<SharedConn>, reconnect_delay: u64, timeout: u32) {
     loop {
-        match TcpStream::connect(&shared.get_host()) {
+        let host = shared.get_host();
+        match TcpStream::connect(&host) {
             Ok(stream) => {
                 stream.set_nodelay(true).ok();
                 let reader_stream = match stream.try_clone() {
@@ -63,7 +64,7 @@ pub fn connection_manager(shared: Arc<SharedConn>, reconnect_delay: u64) {
                 *shared.stream.lock().unwrap() = Some(stream);
                 shared.nvm_buf.lock().unwrap().clear();
 
-                if let Err(e) = shared.handshake() {
+                if let Err(e) = shared.handshake(timeout) {
                     println!(
                         "[naim] handshake failed: {} — reconnecting in {}s...",
                         e, reconnect_delay

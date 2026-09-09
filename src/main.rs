@@ -1,4 +1,4 @@
-use naim_client::{Config, SharedConn, connection_manager, heartbeat_loop};
+use naim_client::{Config, IncomingMessage, SharedConn, connection_manager, heartbeat_loop};
 use std::io::{self, BufRead};
 use std::sync::Arc;
 use std::thread;
@@ -20,10 +20,28 @@ fn main() -> anyhow::Result<()> {
     println!("Write 'quit' to exit.\n");
 
     let shared = Arc::new(SharedConn::new(host));
+    let messages = shared.subscribe();
+
+    thread::spawn(move || {
+        for message in messages {
+            match message {
+                IncomingMessage::Response { name, id, .. } => {
+                    println!("[naim] response '{}' (id={:?})", name, id);
+                }
+                IncomingMessage::Event { name, id, .. } => {
+                    println!("[naim] event '{}' (id={:?})", name, id);
+                }
+                IncomingMessage::Error { raw } => println!("[naim] error: {}", raw),
+                IncomingMessage::NvmLine(line) => println!("<< NVM: {}", line),
+            }
+        }
+    });
 
     {
         let shared = Arc::clone(&shared);
-        thread::spawn(move || connection_manager(shared, Config::global().reconnect));
+        thread::spawn(move || {
+            connection_manager(shared, Config::global().reconnect, Config::global().timeout)
+        });
     }
     {
         let shared = Arc::clone(&shared);
@@ -46,7 +64,7 @@ fn main() -> anyhow::Result<()> {
             break;
         }
         match shared.send_nvm(&line) {
-            Ok(()) => println!(">> NVM: {}", line),
+            Ok(id) => println!(">> NVM (id={}): {}", id, line),
             Err(e) => println!("[naim] Error sending NVM command: {}", e),
         }
     }

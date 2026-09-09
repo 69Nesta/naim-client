@@ -4,4 +4,4 @@ mod shared_conn;
 
 pub use connection_manager::connection_manager;
 pub use heartbeat::heartbeat_loop;
-pub use shared_conn::SharedConn;
+pub use shared_conn::{IncomingMessage, SharedConn};

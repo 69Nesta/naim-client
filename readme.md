@@ -75,7 +75,7 @@ naim_client = { path = "../naim-client" }
 Minimal example:
 
 ```rust
-use naim_client::{connection_manager, heartbeat_loop, Config, SharedConn};
+use naim_client::{connection_manager, heartbeat_loop, Config, IncomingMessage, SharedConn};
 use std::sync::Arc;
 use std::thread;
 
@@ -87,6 +87,13 @@ fn main() -> anyhow::Result<()> {
     let reconnect = config.reconnect;
     let ping_interval = config.ping_interval;
     let shared = Arc::new(SharedConn::new(host));
+    let messages = shared.subscribe();
+
+    thread::spawn(move || {
+        for message in messages {
+            println!("received: {message:?}");
+        }
+    });
 
     {
         let shared = Arc::clone(&shared);
@@ -97,7 +104,8 @@ fn main() -> anyhow::Result<()> {
         thread::spawn(move || heartbeat_loop(shared, ping_interval));
     }
 
-    shared.send_nvm("NVM GETPREAMP")?;
+    let command_id = shared.send_nvm("NVM GETPREAMP")?;
+    println!("sent command {command_id}");
     Ok(())
 }
 ```
@@ -108,13 +116,14 @@ Main API:
 
 * `Config::init()` and `Config::global()`: load and access the global configuration;
 * `SharedConn::new(host)`: create the shared connection state;
-* `SharedConn::send_nvm(command)`: send an NVM command;
+* `SharedConn::subscribe()`: register a receiver for responses, events, errors, and NVM lines;
+* `SharedConn::send_nvm(command)`: send an NVM command and return its command ID;
 * `SharedConn::send_raw(xml)`: send a raw XML command;
-* `SharedConn::send_ping()`: manually send a heartbeat;
+* `SharedConn::send_ping()`: manually send a heartbeat and return its command ID;
 * `connection_manager(...)`: connection, handshake, reading, and reconnection;
 * `heartbeat_loop(...)`: periodically send `Ping` commands.
 
-NVM responses and errors are currently logged to standard output. The library does not yet provide a callback or Rust channel for receiving application-level events.
+`IncomingMessage::Response` and `IncomingMessage::Event` include the protocol name, optional command ID, and raw XML. `IncomingMessage::NvmLine` contains one decoded NVM response line, while `IncomingMessage::Error` contains the raw error frame. Subscribers remain registered across reconnects and are removed when their receiver is dropped.
 
 ## Verification
 
