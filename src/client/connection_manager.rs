@@ -46,7 +46,7 @@ fn read_loop(shared: &Arc<SharedConn>, mut stream: TcpStream) {
 // Thread manager for (re)connecting indefinitely
 // ---------------------------------------------------------------------------
 
-pub fn connection_manager(shared: Arc<SharedConn>, reconnect_delay: u64, timeout: u32) {
+pub fn connection_manager(shared: Arc<SharedConn>, reconnect_delay: u64, timeout: u64) {
     loop {
         let host = shared.get_host();
         match TcpStream::connect(&host) {

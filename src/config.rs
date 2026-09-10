@@ -7,7 +7,7 @@ use std::sync::{OnceLock, RwLock};
 pub struct Config {
     pub device_ip: String,
     pub port: u16,
-    pub timeout: u32,
+    pub timeout: u64,
     pub ping_interval: u64,
     pub reconnect: u64,
 }

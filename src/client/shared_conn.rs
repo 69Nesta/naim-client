@@ -132,7 +132,7 @@ impl SharedConn {
         self.send_raw(&xml).map(|()| id)
     }
 
-    pub fn handshake(&self, timeout: u32) -> io::Result<()> {
+    pub fn handshake(&self, timeout: u64) -> io::Result<()> {
         self.send_raw(
             "<command name=\"RequestAPIVersion\" id=\"0\"><map><item name=\"module\" string=\"NAIM\"/><item name=\"version\" string=\"1\"/></map></command>",
         )?;
