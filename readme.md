@@ -86,6 +86,7 @@ fn main() -> anyhow::Result<()> {
     let host = format!("{}:{}", config.device_ip, config.port);
     let reconnect = config.reconnect;
     let ping_interval = config.ping_interval;
+    let timeout = config.timeout;
     let shared = Arc::new(SharedConn::new(host));
     let messages = shared.subscribe();
 
@@ -97,7 +98,7 @@ fn main() -> anyhow::Result<()> {
 
     {
         let shared = Arc::clone(&shared);
-        thread::spawn(move || connection_manager(shared, reconnect));
+        thread::spawn(move || connection_manager(shared, reconnect, timeout));
     }
     {
         let shared = Arc::clone(&shared);
